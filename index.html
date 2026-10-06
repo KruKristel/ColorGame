@@ -75,7 +75,7 @@ function pick(b,it){
   var m=document.getElementById("msg");
   if(b.dataset.c===it.c){
     if(!wrong)score++;beep(true);
-    m.textContent=["🎉 Great job!","🌟 Awesome!","👏 Super!","💯 Yes!"][Math.floor(Math.random()*4)]+" It's "+it.c.toUpperCase();
+    m.textContent=["🎉 Great job!","🌟 Awesome!","👏 Superb!","💯 Yes!"][Math.floor(Math.random()*4)]+" It's "+it.c.toUpperCase();
     Array.prototype.forEach.call(A.querySelectorAll(".c"),function(x){x.disabled=true});
     i++;setTimeout(q,1300)
   }else{wrong=true;beep(false);b.disabled=true;b.classList.add("shake");m.textContent="Oops! Try again 💪"}}
