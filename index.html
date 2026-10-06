@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Red, Blue or Yellow? Color Game</title>
+<style>
+:root{--bg:#fff8e7;--fg:#222;--card:#fff;--line:#e5dcc3;--r:#e53935;--b:#1e66f5;--y:#fdd835;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1a22;--fg:#f5f2ea;--card:#2a2833;--line:#3c3947}}
+:root[data-theme="dark"]{--bg:#1b1a22;--fg:#f5f2ea;--card:#2a2833;--line:#3c3947}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"Baloo 2","Trebuchet MS",system-ui,sans-serif;min-height:100vh}
+#app{max-width:480px;margin:0 auto;padding:14px}
+h1{font-size:1.6rem;margin:4px 0;text-align:center}
+.credit{text-align:center;opacity:.7;margin:0 0 10px;font-size:.95rem}
+.top{display:flex;justify-content:space-between;font-weight:700;margin:8px 2px}
+.bar{height:10px;border-radius:9px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--r),var(--y),var(--b));transition:width .3s}
+.card{background:var(--card);border:2px solid var(--line);border-radius:24px;padding:18px;margin:14px 0;text-align:center}
+.big{font-size:7.5rem;line-height:1.1}
+.name{font-size:2rem;font-weight:800}
+.btns{display:grid;gap:12px}
+.c{font:inherit;font-size:1.8rem;font-weight:800;border:0;border-radius:20px;padding:20px;cursor:pointer;color:#fff;box-shadow:0 6px 0 rgba(0,0,0,.25);text-transform:uppercase}
+.c:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.c.red{background:var(--r)}.c.blue{background:var(--b)}.c.yellow{background:var(--y);color:#3a3000}
+.c:disabled{opacity:.35;cursor:default}
+.shake{animation:sh .35s}
+@keyframes sh{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.pop{animation:pp .4s}
+@keyframes pp{50%{transform:scale(1.25)}}
+#msg{min-height:2.4rem;text-align:center;font-size:1.4rem;font-weight:800;margin-top:12px}
+.btn{font:inherit;font-weight:700;border:2px solid var(--line);background:var(--card);color:var(--fg);border-radius:14px;padding:10px 14px;cursor:pointer}
+.btn.main{background:var(--b);border-color:var(--b);color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:10px 0}
+.stars{font-size:3rem}
+.item{display:grid;grid-template-columns:3.6rem 1fr 6.2rem 2.4rem;gap:6px;margin:6px 0}
+input,select,textarea{font:inherit;padding:8px;border:2px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg);width:100%;min-width:0}
+label{font-weight:700;display:block;margin-top:10px}
+.hint{font-size:.85rem;opacity:.75}
+</style></head>
+<body><div id="app"></div>
+<script>
+/* ===== EDIT THE DEFAULT GAME HERE (or use the in-page Edit screen) ===== */
+var DEF={title:"Red, Blue or Yellow?",credit:"Kru Kristel",items:[
+{e:"🍎",n:"Apple",c:"red"},{e:"🍓",n:"Strawberry",c:"red"},{e:"🚒",n:"Fire truck",c:"red"},{e:"🌹",n:"Rose",c:"red"},
+{e:"🐳",n:"Whale",c:"blue"},{e:"💧",n:"Water drop",c:"blue"},{e:"🫐",n:"Blueberries",c:"blue"},{e:"🦋",n:"Butterfly",c:"blue"},
+{e:"🍌",n:"Banana",c:"yellow"},{e:"🌻",n:"Sunflower",c:"yellow"},{e:"⭐",n:"Star",c:"yellow"},{e:"🐥",n:"Chick",c:"yellow"}]};
+/* ======================================================================= */
+var canEdit=/(^|[#&])edit/.test(location.hash),KEY="kru-color-game-v1",cfg,shared=false,order=[],i=0,score=0,wrong=false,A=document.getElementById("app");
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function valid(o){return o&&Array.isArray(o.items)&&o.items.length&&o.items.every(function(x){return x&&/^(red|blue|yellow)$/.test(x.c)})}
+function enc(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o))))}
+function dec(s){return JSON.parse(decodeURIComponent(escape(atob(s))))}
+function load(){
+  try{var m=location.hash.match(/g=([^&]+)/);if(m){var o=dec(m[1]);if(valid(o)){shared=true;return o}}}catch(e){}
+  try{var s=localStorage.getItem(KEY);if(s){var p=JSON.parse(s);if(valid(p))return p}}catch(e){}
+  return clone(DEF)}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}
+function shuffle(a){for(var k=a.length-1;k>0;k--){var j=Math.floor(Math.random()*(k+1)),t=a[k];a[k]=a[j];a[j]=t}return a}
+function beep(ok){try{var C=new(window.AudioContext||window.webkitAudioContext)(),o=C.createOscillator(),g=C.createGain();o.connect(g);g.connect(C.destination);o.type="triangle";o.frequency.value=ok?660:200;g.gain.value=.15;o.start();if(ok)o.frequency.setValueAtTime(880,C.currentTime+.12);o.stop(C.currentTime+(ok?.28:.2))}catch(e){}}
+function head(){return'<h1>'+esc(cfg.title)+'</h1><p class="credit">by '+esc(cfg.credit)+'</p>'}
+
+function home(){
+  A.innerHTML=head()+'<div class="card"><div class="big">🔴🔵🟡</div><p class="name">Tap the right color!</p><p>'+cfg.items.length+' questions</p></div><div class="row"><button class="btn main" id="go" style="font-size:1.6rem;padding:14px 34px">▶ Play</button></div>'+(canEdit?'<div class="row"><button class="btn" id="ed">✏️ Edit game</button></div>':"");
+  document.getElementById("go").onclick=start;if(canEdit)document.getElementById("ed").onclick=edit}
+function start(){order=shuffle(cfg.items.map(function(_,k){return k}));i=0;score=0;q()}
+function q(){
+  if(i>=order.length)return end();
+  var it=cfg.items[order[i]];wrong=false;
+  A.innerHTML=head()+'<div class="top"><span>Question '+(i+1)+' / '+order.length+'</span><span>⭐ '+score+'</span></div><div class="bar"><i style="width:'+(i/order.length*100)+'%"></i></div>'+
+  '<div class="card pop"><div class="big">'+esc(it.e)+'</div><div class="name">'+esc(it.n)+'</div><div class="hint">What color is it?</div></div>'+
+  '<div class="btns">'+["red","blue","yellow"].map(function(c){return'<button class="c '+c+'" data-c="'+c+'">'+c+'</button>'}).join("")+'</div><div id="msg"></div>';
+  Array.prototype.forEach.call(A.querySelectorAll(".c"),function(b){b.onclick=function(){pick(b,it)}})}
+function pick(b,it){
+  var m=document.getElementById("msg");
+  if(b.dataset.c===it.c){
+    if(!wrong)score++;beep(true);
+    m.textContent=["🎉 Great job!","🌟 Awesome!","👏 Super!","💯 Yes!"][Math.floor(Math.random()*4)]+" It's "+it.c.toUpperCase();
+    Array.prototype.forEach.call(A.querySelectorAll(".c"),function(x){x.disabled=true});
+    i++;setTimeout(q,1300)
+  }else{wrong=true;beep(false);b.disabled=true;b.classList.add("shake");m.textContent="Oops! Try again 💪"}}
+function end(){
+  var p=score/order.length,s=p>=.9?3:p>=.6?2:1;
+  A.innerHTML=head()+'<div class="card"><div class="stars">'+"⭐".repeat(s)+'</div><div class="name">'+score+' / '+order.length+'</div><p>'+(s==3?"Color Master! 🎨":s==2?"Great work! 👍":"Good try! Play again! 💪")+'</p></div><div class="row"><button class="btn main" id="again">🔁 Play again</button>'+(canEdit?'<button class="btn" id="ed">✏️ Edit</button>':"")+'</div>';
+  document.getElementById("again").onclick=start;if(canEdit)document.getElementById("ed").onclick=edit}
+
+function edit(){
+  A.innerHTML='<h1>✏️ Edit your game</h1>'+(shared?'<p class="hint">This is a shared game. Saving makes your own copy.</p>':'')+
+  '<label>Game title</label><input id="t" value="'+esc(cfg.title)+'"><label>Your name / brand</label><input id="cr" value="'+esc(cfg.credit)+'">'+
+  '<label>Questions <span class="hint">(emoji · word · color)</span></label><div id="list"></div>'+
+  '<div class="row"><button class="btn" id="add">➕ Add question</button></div>'+
+  '<div class="row"><button class="btn main" id="sv">💾 Save &amp; Play</button><button class="btn" id="sh">🔗 Make share link</button></div>'+
+  '<input id="lnk" readonly placeholder="Your share link appears here" style="display:none"><p class="hint" id="lh"></p>'+
+  '<label>Backup / import (JSON)</label><textarea id="js" rows="4"></textarea>'+
+  '<div class="row"><button class="btn" id="ex">Export to box</button><button class="btn" id="im">Import from box</button><button class="btn" id="rs">Reset to default</button></div>';
+  var L=document.getElementById("list");
+  function rows(){L.innerHTML=cfg.items.map(function(x,k){return'<div class="item" data-k="'+k+'"><input class="e" value="'+esc(x.e)+'" maxlength="4"><input class="n" value="'+esc(x.n)+'"><select class="c2">'+["red","blue","yellow"].map(function(c){return'<option'+(c==x.c?' selected':'')+'>'+c+'</option>'}).join("")+'</select><button class="btn d" style="padding:4px">🗑</button></div>'}).join("");
+    Array.prototype.forEach.call(L.querySelectorAll(".d"),function(b){b.onclick=function(){grab();cfg.items.splice(+b.parentNode.dataset.k,1);rows()}})}
+  function grab(){cfg.title=document.getElementById("t").value||DEF.title;cfg.credit=document.getElementById("cr").value;
+    Array.prototype.forEach.call(L.children,function(r,k){cfg.items[k]={e:r.querySelector(".e").value,n:r.querySelector(".n").value,c:r.querySelector(".c2").value}});
+    cfg.items=cfg.items.filter(function(x){return x.e||x.n})}
+  rows();
+  document.getElementById("add").onclick=function(){grab();cfg.items.push({e:"🎈",n:"Balloon",c:"red"});rows()};
+  document.getElementById("sv").onclick=function(){grab();if(!cfg.items.length)cfg.items=clone(DEF.items);save();shared=false;try{history.replaceState(null,"",location.href.split("#")[0])}catch(e){}start()};
+  document.getElementById("sh").onclick=function(){grab();var u=location.href.split("#")[0]+"#g="+enc(cfg),l=document.getElementById("lnk");l.style.display="block";l.value=u;l.select();
+    try{navigator.clipboard.writeText(u)}catch(e){}document.getElementById("lh").textContent="Link ready — copy it and post on Facebook or TikTok (bio link). Anyone who opens it plays YOUR version."};
+  document.getElementById("ex").onclick=function(){grab();document.getElementById("js").value=JSON.stringify(cfg)};
+  document.getElementById("im").onclick=function(){try{var o=JSON.parse(document.getElementById("js").value);if(valid(o)){cfg=o;edit()}else alert("Not a valid game")}catch(e){alert("Not a valid game")}};
+  document.getElementById("rs").onclick=function(){cfg=clone(DEF);edit()}}
+
+cfg=load();home();
+</script></body></html>
